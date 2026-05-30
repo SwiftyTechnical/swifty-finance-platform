@@ -1,0 +1,9 @@
+node_modules/
+.env
+.env.local
+data/swifty.db
+data/swifty.db.backup-*
+data/swifty.db-wal
+data/swifty.db-journal
+.DS_Store
+dist/
