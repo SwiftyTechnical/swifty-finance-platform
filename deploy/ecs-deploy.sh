@@ -268,10 +268,16 @@ aws iam put-role-policy --role-name codebuild-finview-role --policy-name CodeBui
     {"Effect":"Allow","Action":["ecr:BatchCheckLayerAvailability","ecr:GetDownloadUrlForLayer","ecr:BatchGetImage","ecr:PutImage","ecr:InitiateLayerUpload","ecr:UploadLayerPart","ecr:CompleteLayerUpload"],"Resource":"arn:aws:ecr:'"${AWS_REGION}"':'"${ACCOUNT_ID}"':repository/'"${ECR_REPO}"'"},
     {"Effect":"Allow","Action":["s3:GetObject","s3:PutObject","s3:GetBucketAcl","s3:GetBucketLocation"],"Resource":"*"}]}'
 
-aws codebuild create-project --name finview-build \
-  --source type=CODEPIPELINE --artifacts type=CODEPIPELINE \
-  --environment type=LINUX_CONTAINER,computeType=BUILD_GENERAL1_SMALL,image=aws/codebuild/amazonlinux2-x86_64-standard:5.0,privilegedMode=true \
-  --service-role arn:aws:iam::${ACCOUNT_ID}:role/codebuild-finview-role --region ${AWS_REGION} 2>/dev/null || echo "  codebuild project exists."
+if aws codebuild batch-get-projects --names finview-build --region ${AWS_REGION} \
+     --query 'projects[0].name' --output text 2>/dev/null | grep -q finview-build; then
+  echo "  codebuild project exists."
+else
+  aws codebuild create-project --name finview-build \
+    --source type=CODEPIPELINE --artifacts type=CODEPIPELINE \
+    --environment type=LINUX_CONTAINER,computeType=BUILD_GENERAL1_SMALL,image=aws/codebuild/amazonlinux2-x86_64-standard:5.0,privilegedMode=true \
+    --service-role arn:aws:iam::${ACCOUNT_ID}:role/codebuild-finview-role --region ${AWS_REGION} >/dev/null
+  echo "  created codebuild project finview-build"
+fi
 
 CONNECTION_ARN=$(aws codestar-connections list-connections --provider-type-filter GitHub --region ${AWS_REGION} \
   --query "Connections[?ConnectionStatus=='AVAILABLE'].ConnectionArn | [0]" --output text)
