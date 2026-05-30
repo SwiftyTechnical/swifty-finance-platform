@@ -76,9 +76,10 @@ echo "  ${ECR_URI}"
 echo ""; echo "[2] Building & pushing initial image..."
 aws ecr get-login-password --region ${AWS_REGION} | \
   docker login --username AWS --password-stdin ${ACCOUNT_ID}.dkr.ecr.${AWS_REGION}.amazonaws.com
-docker build -t ${ECR_URI}:latest "${SCRIPT_DIR}"
-docker push ${ECR_URI}:latest
-echo "  pushed ${ECR_URI}:latest"
+# Force linux/amd64 — Fargate runs amd64, and this may be built from an arm64
+# (Apple Silicon) host. buildx pushes directly.
+docker buildx build --platform linux/amd64 -t ${ECR_URI}:latest --push "${SCRIPT_DIR}"
+echo "  pushed ${ECR_URI}:latest (linux/amd64)"
 
 #-----------------------------------------------------------------------------
 # Step 3: CloudWatch log group
