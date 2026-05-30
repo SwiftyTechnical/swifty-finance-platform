@@ -8,7 +8,6 @@ import {
   updateOperator,
   deleteOperator,
   setFxRate,
-  resetAll,
   replaceAllFromSnapshot,
   addCustomGroup,
   removeCustomGroup,
@@ -30,9 +29,16 @@ import {
   ensureSchema,
   pool,
 } from './db.mjs'
+import { authRouter, requireAuth, requireGroup } from './auth.mjs'
 
 const app = express()
 app.use(express.json({ limit: '10mb' }))
+
+// Health check + auth routes are public; everything else under /api requires a
+// valid Cognito access token whose user belongs to the FinanceAdmin group.
+app.get('/api/health', (_req, res) => res.json({ status: 'ok' }))
+app.use('/api/auth', authRouter)
+app.use('/api', requireAuth, requireGroup('FinanceAdmin'))
 
 // Wraps an async route so an uncaught rejection turns into a 500 instead of an
 // unhandled promise rejection.
@@ -167,11 +173,6 @@ app.patch('/api/territories/:id', asyncRoute(async (req, res) => {
 
 app.delete('/api/territories/:id', asyncRoute(async (req, res) => {
   await deleteTerritory(req.params.id)
-  res.json({ ok: true })
-}))
-
-app.post('/api/reset', asyncRoute(async (_req, res) => {
-  await resetAll()
   res.json({ ok: true })
 }))
 

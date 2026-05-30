@@ -15,7 +15,6 @@ interface Props {
   patchApiConnection: (id: string, patch: { name?: string; baseUrl?: string; apiKey?: string; clientId?: string }) => Promise<void>
   removeApiConnection: (id: string) => Promise<void>
   refreshApiConnections: () => Promise<void>
-  resetAll: () => void
 }
 
 const labels: Record<NonGbpCurrency, string> = {
@@ -37,7 +36,6 @@ export function SettingsView({
   patchApiConnection,
   removeApiConnection,
   refreshApiConnections,
-  resetAll,
 }: Props) {
   const currencies = Object.keys(state.fxRates) as NonGbpCurrency[]
   const [newName, setNewName] = useState('')
@@ -210,12 +208,6 @@ export function SettingsView({
         removeApiConnection={removeApiConnection}
         refreshApiConnections={refreshApiConnections}
       />
-
-      <div className="card">
-        <h2>Reset</h2>
-        <p className="subtle">Clears every classification, group, operator, territory, and FX rate. The Excel file stays on disk.</p>
-        <button className="btn danger" onClick={resetAll}>Reset all local data</button>
-      </div>
     </div>
   )
 }

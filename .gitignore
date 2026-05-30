@@ -7,3 +7,7 @@ data/swifty.db-wal
 data/swifty.db-journal
 .DS_Store
 dist/
+
+# Compiled TS output — Vite transpiles sources directly; tsc runs with noEmit.
+src/**/*.js
+tsconfig.tsbuildinfo

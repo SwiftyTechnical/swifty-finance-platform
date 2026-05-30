@@ -1,15 +1,52 @@
 import { ApiConnection, AppState, ExpenseLine, RevenueOperator, ExpenseAssignment, NonGbpCurrency, Territory } from './types'
+import { loadTokens, saveTokens } from './auth/tokens'
 
 const JSON_HEADERS = { 'Content-Type': 'application/json' }
 
+// All data routes are protected by Cognito auth on the server. This wrapper
+// attaches the current access token and, on a 401, transparently refreshes the
+// token once and retries the request. Uses window.fetch internally so the call
+// sites below can route through apiFetch without self-recursion.
+async function apiFetch(url: string, options: RequestInit = {}): Promise<Response> {
+  const tokens = loadTokens()
+  const headers: Record<string, string> = { ...(options.headers as Record<string, string>) }
+  if (tokens?.accessToken) headers.Authorization = `Bearer ${tokens.accessToken}`
+
+  let res = await window.fetch(url, { ...options, headers })
+
+  if (res.status === 401 && tokens?.refreshToken) {
+    const refresh = await window.fetch('/api/auth/refresh', {
+      method: 'POST',
+      headers: JSON_HEADERS,
+      body: JSON.stringify({ refreshToken: tokens.refreshToken }),
+    })
+    if (refresh.ok) {
+      const data = await refresh.json()
+      const updated = {
+        ...tokens,
+        accessToken: data.tokens.accessToken,
+        idToken: data.tokens.idToken,
+        expiresIn: data.tokens.expiresIn,
+      }
+      saveTokens(updated)
+      headers.Authorization = `Bearer ${updated.accessToken}`
+      res = await window.fetch(url, { ...options, headers })
+    } else {
+      saveTokens(null)
+    }
+  }
+
+  return res
+}
+
 export async function fetchState(): Promise<AppState> {
-  const res = await fetch('/api/state')
+  const res = await apiFetch('/api/state')
   if (!res.ok) throw new Error(`GET /api/state ${res.status}`)
   return res.json()
 }
 
 export async function seedState(snapshot: Partial<AppState>): Promise<{ seeded: boolean }> {
-  const res = await fetch('/api/state/seed', {
+  const res = await apiFetch('/api/state/seed', {
     method: 'POST',
     headers: JSON_HEADERS,
     body: JSON.stringify(snapshot),
@@ -24,7 +61,7 @@ export async function pushExpenses(
   excelFileName?: string,
   lastImportedAt?: string,
 ) {
-  await fetch('/api/expenses', {
+  await apiFetch('/api/expenses', {
     method: 'PUT',
     headers: JSON_HEADERS,
     body: JSON.stringify({ expenses, excelFileName, lastImportedAt }),
@@ -32,7 +69,7 @@ export async function pushExpenses(
 }
 
 export async function createManualExpense(line: ExpenseLine) {
-  await fetch('/api/expenses/manual', {
+  await apiFetch('/api/expenses/manual', {
     method: 'POST',
     headers: JSON_HEADERS,
     body: JSON.stringify(line),
@@ -40,7 +77,7 @@ export async function createManualExpense(line: ExpenseLine) {
 }
 
 export async function patchExpense(id: string, patch: Partial<ExpenseLine>) {
-  await fetch(`/api/expenses/${encodeURIComponent(id)}`, {
+  await apiFetch(`/api/expenses/${encodeURIComponent(id)}`, {
     method: 'PATCH',
     headers: JSON_HEADERS,
     body: JSON.stringify(patch),
@@ -48,11 +85,11 @@ export async function patchExpense(id: string, patch: Partial<ExpenseLine>) {
 }
 
 export async function removeExpense(id: string) {
-  await fetch(`/api/expenses/${encodeURIComponent(id)}`, { method: 'DELETE' })
+  await apiFetch(`/api/expenses/${encodeURIComponent(id)}`, { method: 'DELETE' })
 }
 
 export async function putAssignment(id: string, assignment: ExpenseAssignment) {
-  await fetch(`/api/assignments/${encodeURIComponent(id)}`, {
+  await apiFetch(`/api/assignments/${encodeURIComponent(id)}`, {
     method: 'PUT',
     headers: JSON_HEADERS,
     body: JSON.stringify(assignment),
@@ -68,7 +105,7 @@ export async function bulkAssignments(
     territoryId?: ExpenseAssignment['territoryId']
   }[],
 ) {
-  await fetch('/api/assignments/bulk', {
+  await apiFetch('/api/assignments/bulk', {
     method: 'POST',
     headers: JSON_HEADERS,
     body: JSON.stringify({ patches }),
@@ -76,7 +113,7 @@ export async function bulkAssignments(
 }
 
 export async function createOperator(op: RevenueOperator) {
-  await fetch('/api/operators', {
+  await apiFetch('/api/operators', {
     method: 'POST',
     headers: JSON_HEADERS,
     body: JSON.stringify(op),
@@ -84,7 +121,7 @@ export async function createOperator(op: RevenueOperator) {
 }
 
 export async function patchOperator(id: string, patch: Partial<RevenueOperator>) {
-  await fetch(`/api/operators/${encodeURIComponent(id)}`, {
+  await apiFetch(`/api/operators/${encodeURIComponent(id)}`, {
     method: 'PATCH',
     headers: JSON_HEADERS,
     body: JSON.stringify(patch),
@@ -92,11 +129,11 @@ export async function patchOperator(id: string, patch: Partial<RevenueOperator>)
 }
 
 export async function deleteOperator(id: string) {
-  await fetch(`/api/operators/${encodeURIComponent(id)}`, { method: 'DELETE' })
+  await apiFetch(`/api/operators/${encodeURIComponent(id)}`, { method: 'DELETE' })
 }
 
 export async function reorderOperators(ids: string[]) {
-  await fetch('/api/operators/reorder', {
+  await apiFetch('/api/operators/reorder', {
     method: 'POST',
     headers: JSON_HEADERS,
     body: JSON.stringify({ ids }),
@@ -104,19 +141,16 @@ export async function reorderOperators(ids: string[]) {
 }
 
 export async function putFxRate(currency: NonGbpCurrency, rate: number) {
-  await fetch(`/api/fx/${currency}`, {
+  await apiFetch(`/api/fx/${currency}`, {
     method: 'PUT',
     headers: JSON_HEADERS,
     body: JSON.stringify({ rate }),
   })
 }
 
-export async function resetServer() {
-  await fetch('/api/reset', { method: 'POST' })
-}
 
 export async function createCustomGroup(name: string) {
-  await fetch('/api/groups', {
+  await apiFetch('/api/groups', {
     method: 'POST',
     headers: JSON_HEADERS,
     body: JSON.stringify({ name }),
@@ -124,7 +158,7 @@ export async function createCustomGroup(name: string) {
 }
 
 export async function renameCustomGroup(oldName: string, newName: string) {
-  await fetch(`/api/groups/${encodeURIComponent(oldName)}`, {
+  await apiFetch(`/api/groups/${encodeURIComponent(oldName)}`, {
     method: 'PATCH',
     headers: JSON_HEADERS,
     body: JSON.stringify({ name: newName }),
@@ -132,11 +166,11 @@ export async function renameCustomGroup(oldName: string, newName: string) {
 }
 
 export async function deleteCustomGroup(name: string) {
-  await fetch(`/api/groups/${encodeURIComponent(name)}`, { method: 'DELETE' })
+  await apiFetch(`/api/groups/${encodeURIComponent(name)}`, { method: 'DELETE' })
 }
 
 export async function createTerritory(t: Territory) {
-  await fetch('/api/territories', {
+  await apiFetch('/api/territories', {
     method: 'POST',
     headers: JSON_HEADERS,
     body: JSON.stringify(t),
@@ -144,7 +178,7 @@ export async function createTerritory(t: Territory) {
 }
 
 export async function patchTerritory(id: string, patch: Partial<Territory>) {
-  await fetch(`/api/territories/${encodeURIComponent(id)}`, {
+  await apiFetch(`/api/territories/${encodeURIComponent(id)}`, {
     method: 'PATCH',
     headers: JSON_HEADERS,
     body: JSON.stringify(patch),
@@ -152,7 +186,7 @@ export async function patchTerritory(id: string, patch: Partial<Territory>) {
 }
 
 export async function removeTerritory(id: string) {
-  await fetch(`/api/territories/${encodeURIComponent(id)}`, { method: 'DELETE' })
+  await apiFetch(`/api/territories/${encodeURIComponent(id)}`, { method: 'DELETE' })
 }
 
 export type BillingSource = 'billing' | 'gateway'
@@ -191,7 +225,7 @@ export interface RefreshResponse {
 }
 
 export async function listConnections(): Promise<ApiConnection[]> {
-  const res = await fetch('/api/connections')
+  const res = await apiFetch('/api/connections')
   if (!res.ok) throw new Error(`GET /api/connections ${res.status}`)
   const body = await res.json()
   return body.connections ?? []
@@ -204,7 +238,7 @@ export async function createConnection(input: {
   apiKey: string
   clientId?: string
 }) {
-  const res = await fetch('/api/connections', {
+  const res = await apiFetch('/api/connections', {
     method: 'POST',
     headers: JSON_HEADERS,
     body: JSON.stringify(input),
@@ -219,7 +253,7 @@ export async function patchConnection(
   id: string,
   patch: { name?: string; baseUrl?: string; apiKey?: string; clientId?: string },
 ) {
-  await fetch(`/api/connections/${encodeURIComponent(id)}`, {
+  await apiFetch(`/api/connections/${encodeURIComponent(id)}`, {
     method: 'PATCH',
     headers: JSON_HEADERS,
     body: JSON.stringify(patch),
@@ -227,16 +261,16 @@ export async function patchConnection(
 }
 
 export async function deleteConnection(id: string) {
-  await fetch(`/api/connections/${encodeURIComponent(id)}`, { method: 'DELETE' })
+  await apiFetch(`/api/connections/${encodeURIComponent(id)}`, { method: 'DELETE' })
 }
 
 export async function testConnection(id: string) {
-  const res = await fetch(`/api/connections/${encodeURIComponent(id)}/test`, { method: 'POST' })
+  const res = await apiFetch(`/api/connections/${encodeURIComponent(id)}/test`, { method: 'POST' })
   return res.json() as Promise<{ ok: boolean; status: number; data?: unknown; error?: string; url?: string }>
 }
 
 export async function fetchBillingMonthly(id: string, year: string): Promise<BillingMonthlyResponse> {
-  const res = await fetch(
+  const res = await apiFetch(
     `/api/connections/${encodeURIComponent(id)}/billing/monthly?year=${encodeURIComponent(year)}`,
   )
   if (!res.ok) throw new Error(`billing/monthly ${res.status}`)
@@ -250,7 +284,7 @@ export async function refreshBilling(
   const params = new URLSearchParams({ year: opts.year })
   if (opts.month !== undefined) params.set('month', String(opts.month))
   if (opts.source) params.set('source', opts.source)
-  const res = await fetch(
+  const res = await apiFetch(
     `/api/connections/${encodeURIComponent(id)}/billing/refresh?${params.toString()}`,
     { method: 'POST' },
   )

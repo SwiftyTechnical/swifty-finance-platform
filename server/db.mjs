@@ -561,20 +561,7 @@ export async function upsertBillingCache({ connectionId, source, year, month, ok
   )
 }
 
-// ---- reset / snapshot --------------------------------------------------------
-
-export async function resetAll() {
-  await tx(async (c) => {
-    await c.query('DELETE FROM billing_cache')
-    await c.query('DELETE FROM api_connections')
-    await c.query('DELETE FROM expenses')
-    await c.query('DELETE FROM operators')
-    await c.query('DELETE FROM assignments')
-    await c.query('DELETE FROM settings')
-    await c.query('DELETE FROM custom_groups')
-    await c.query('DELETE FROM territories')
-  })
-}
+// ---- snapshot ----------------------------------------------------------------
 
 export async function replaceAllFromSnapshot(snapshot) {
   await tx(async (c) => {

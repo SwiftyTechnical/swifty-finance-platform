@@ -441,12 +441,6 @@ export function useAppState() {
     [refreshApiConnections],
   )
 
-  const resetAll = useCallback(() => {
-    if (!confirm('Erase all classifications, operators, FX rates, and imported data?')) return
-    setState(defaultState)
-    report(() => api.resetServer())
-  }, [])
-
   return {
     state,
     ui,
@@ -479,6 +473,5 @@ export function useAppState() {
     patchApiConnection,
     removeApiConnection,
     refreshApiConnections,
-    resetAll,
   }
 }

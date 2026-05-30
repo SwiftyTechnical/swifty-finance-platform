@@ -388,3 +388,203 @@ table.grid tr.net-row td.negative { color: var(--danger); }
 @media (max-width: 900px) {
   .fx-grid { grid-template-columns: repeat(2, 1fr); }
 }
+
+/* ---------------------------------------------------------------------------
+   Login (Cognito auth) — ported from ai-agents, adapted to local tokens
+   --------------------------------------------------------------------------- */
+.login-container {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: var(--bg);
+  padding: 20px;
+}
+.login-card {
+  width: 100%;
+  max-width: 420px;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 16px;
+  padding: 40px 36px;
+  box-shadow: 0 4px 24px rgba(27, 31, 36, 0.06);
+}
+.login-header {
+  text-align: center;
+  margin-bottom: 32px;
+}
+.login-header h1 {
+  font-size: 20px;
+  font-weight: 700;
+}
+.login-header-subtitle {
+  font-size: 13px;
+  color: var(--muted);
+  margin-top: 6px;
+}
+.login-subtitle {
+  font-size: 13px;
+  color: var(--muted);
+  margin-bottom: 20px;
+  line-height: 1.6;
+}
+.login-error {
+  background: #fef2f2;
+  border: 1px solid #fecaca;
+  color: var(--danger);
+  font-size: 13px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+}
+.login-message {
+  background: #f0fdfa;
+  border: 1px solid #99f6e4;
+  color: var(--b2b);
+  font-size: 13px;
+  padding: 10px 14px;
+  border-radius: 8px;
+  margin-bottom: 16px;
+}
+.login-card .form-group {
+  margin-bottom: 16px;
+}
+.login-card .form-group label {
+  display: block;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--muted);
+  margin-bottom: 6px;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+.login-card .form-group input {
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--border-strong);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 14px;
+  font-family: inherit;
+  transition: border-color 0.15s, box-shadow 0.15s;
+}
+.login-card .form-group input:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-weak);
+}
+.login-card .form-group input::placeholder {
+  color: var(--muted);
+}
+.password-input-wrapper {
+  position: relative;
+}
+.password-input-wrapper input {
+  padding-right: 40px;
+}
+.password-toggle {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  color: var(--muted);
+  cursor: pointer;
+  padding: 2px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.password-toggle:hover {
+  color: var(--text);
+}
+.login-btn {
+  width: 100%;
+  padding: 12px;
+  border-radius: 8px;
+  border: none;
+  background: var(--accent);
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  font-family: inherit;
+  cursor: pointer;
+  transition: opacity 0.15s;
+  margin-top: 8px;
+}
+.login-btn:hover { opacity: 0.9; }
+.login-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+.login-link {
+  display: block;
+  width: 100%;
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 13px;
+  cursor: pointer;
+  margin-top: 16px;
+  text-align: center;
+  font-family: inherit;
+}
+.login-link:hover { text-decoration: underline; }
+.mfa-setup {
+  margin-bottom: 20px;
+  text-align: center;
+}
+.mfa-qr {
+  margin-bottom: 16px;
+  background: #fff;
+  display: inline-block;
+  padding: 12px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+}
+.mfa-secret {
+  font-size: 12px;
+  color: var(--muted);
+}
+.mfa-secret code {
+  display: block;
+  margin-top: 4px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 13px;
+  color: var(--text);
+  background: var(--bg);
+  padding: 8px 12px;
+  border-radius: 6px;
+  word-break: break-all;
+  user-select: all;
+}
+
+/* Topbar user / logout */
+.topbar-user {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+.topbar-user-email {
+  font-size: 12px;
+  color: var(--muted);
+}
+.logout-btn {
+  background: var(--surface);
+  color: var(--text);
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-family: inherit;
+  cursor: pointer;
+}
+.logout-btn:hover { border-color: var(--danger); color: var(--danger); }
+
+.app-loading {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--muted);
+  font-size: 14px;
+}

@@ -11,6 +11,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "@aws-sdk/client-cognito-identity-provider": "^3.1009.0",
+    "aws-jwt-verify": "^5.1.1",
     "concurrently": "^9.2.1",
     "express": "^5.2.1",
     "pg": "^8.21.0",

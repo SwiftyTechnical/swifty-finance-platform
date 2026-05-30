@@ -7,6 +7,8 @@ import { GroupsView } from './components/GroupsView'
 import { BillingView } from './components/BillingView'
 import { SyncStatus, useAppState } from './store'
 import { knownYears } from './utils'
+import { useAuth } from './auth/AuthContext'
+import Login from './auth/Login'
 
 type Tab = 'expenses' | 'groups' | 'revenue' | 'pnlB2B' | 'pnlB2C' | 'billing' | 'settings'
 
@@ -43,6 +45,26 @@ function SyncBadge({ status, error }: { status: SyncStatus; error: string | null
 }
 
 export function App() {
+  const { user, isAuthenticated, loading: authLoading, logout } = useAuth()
+
+  if (authLoading) {
+    return <div className="app-loading">Loading…</div>
+  }
+
+  if (!isAuthenticated) {
+    return <Login />
+  }
+
+  return <AuthedApp user={user} logout={logout} />
+}
+
+function AuthedApp({
+  user,
+  logout,
+}: {
+  user: { email: string; groups: string[] } | null
+  logout: () => Promise<void>
+}) {
   const {
     state,
     ui,
@@ -74,7 +96,6 @@ export function App() {
     patchApiConnection,
     removeApiConnection,
     refreshApiConnections,
-    resetAll,
   } = useAppState()
 
   const [tab, setTab] = useState<Tab>('expenses')
@@ -99,6 +120,10 @@ export function App() {
             onSelect={setCurrentYear}
           />
           <SyncBadge status={syncStatus} error={lastError} />
+          <span className="topbar-user">
+            <span className="topbar-user-email">{user?.email}</span>
+            <button className="logout-btn" onClick={() => logout()}>Logout</button>
+          </span>
         </div>
       </header>
 
@@ -175,7 +200,6 @@ export function App() {
             patchApiConnection={patchApiConnection}
             removeApiConnection={removeApiConnection}
             refreshApiConnections={refreshApiConnections}
-            resetAll={resetAll}
           />
         )}
       </main>
