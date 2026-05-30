@@ -1,4 +1,6 @@
 import express from 'express'
+import path from 'node:path'
+import { fileURLToPath } from 'node:url'
 import {
   getFullState,
   replaceExpenses,
@@ -572,6 +574,16 @@ function startScheduler() {
   // Run once shortly after boot (give the server a beat to bind), then daily.
   setTimeout(() => { runAutoRefresh().catch((e) => console.warn('[scheduler] error', e)) }, 5000)
   setInterval(() => { runAutoRefresh().catch((e) => console.warn('[scheduler] error', e)) }, ONE_DAY_MS)
+}
+
+// In production the server also serves the built frontend (Vite output in
+// ../dist) and falls back to index.html for client-side routes. Registered
+// after the API routes above, so /api/* is matched first. Express 5 dropped
+// the "*" path string, so the SPA fallback is a final catch-all middleware.
+if (process.env.NODE_ENV === 'production') {
+  const distDir = path.join(path.dirname(fileURLToPath(import.meta.url)), '..', 'dist')
+  app.use(express.static(distDir))
+  app.use((_req, res) => res.sendFile(path.join(distDir, 'index.html')))
 }
 
 const PORT = process.env.PORT ? Number(process.env.PORT) : 4000

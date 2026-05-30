@@ -1,0 +1,33 @@
+version: 0.2
+
+env:
+  variables:
+    ECR_REPO_NAME: swifty-finance-platform
+    CONTAINER_NAME: finview
+
+phases:
+  pre_build:
+    commands:
+      - echo Logging in to Amazon ECR...
+      - AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
+      - ECR_URI=${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com/${ECR_REPO_NAME}
+      - aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin ${AWS_ACCOUNT_ID}.dkr.ecr.${AWS_DEFAULT_REGION}.amazonaws.com
+      - COMMIT_HASH=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7)
+      - IMAGE_TAG=${COMMIT_HASH:-latest}
+
+  build:
+    commands:
+      - echo Building Docker image...
+      - docker build -t ${ECR_URI}:${IMAGE_TAG} -t ${ECR_URI}:latest .
+
+  post_build:
+    commands:
+      - echo Pushing Docker image...
+      - docker push ${ECR_URI}:${IMAGE_TAG}
+      - docker push ${ECR_URI}:latest
+      - echo Writing imagedefinitions.json...
+      - printf '[{"name":"%s","imageUri":"%s"}]' "$CONTAINER_NAME" "${ECR_URI}:${IMAGE_TAG}" > imagedefinitions.json
+
+artifacts:
+  files:
+    - imagedefinitions.json

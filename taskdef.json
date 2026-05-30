@@ -1,0 +1,45 @@
+{
+  "family": "finview",
+  "networkMode": "awsvpc",
+  "requiresCompatibilities": ["FARGATE"],
+  "cpu": "256",
+  "memory": "512",
+  "executionRoleArn": "arn:aws:iam::ACCOUNT_ID:role/ecsTaskExecutionRole-finview",
+  "taskRoleArn": "arn:aws:iam::ACCOUNT_ID:role/ecsTaskRole-finview",
+  "containerDefinitions": [
+    {
+      "name": "finview",
+      "image": "ECR_IMAGE_URI",
+      "essential": true,
+      "portMappings": [
+        { "containerPort": 3001, "protocol": "tcp" }
+      ],
+      "environment": [
+        { "name": "NODE_ENV", "value": "production" },
+        { "name": "PORT", "value": "3001" },
+        { "name": "AWS_REGION", "value": "eu-west-1" }
+      ],
+      "secrets": [
+        { "name": "DATABASE_URL", "valueFrom": "arn:aws:ssm:eu-west-1:ACCOUNT_ID:parameter/finview/DATABASE_URL" },
+        { "name": "COGNITO_USER_POOL_ID", "valueFrom": "arn:aws:ssm:eu-west-1:ACCOUNT_ID:parameter/finview/COGNITO_USER_POOL_ID" },
+        { "name": "COGNITO_CLIENT_ID", "valueFrom": "arn:aws:ssm:eu-west-1:ACCOUNT_ID:parameter/finview/COGNITO_CLIENT_ID" },
+        { "name": "GATEWAY_API_KEY", "valueFrom": "arn:aws:ssm:eu-west-1:ACCOUNT_ID:parameter/finview/GATEWAY_API_KEY" }
+      ],
+      "logConfiguration": {
+        "logDriver": "awslogs",
+        "options": {
+          "awslogs-group": "/ecs/finview",
+          "awslogs-region": "eu-west-1",
+          "awslogs-stream-prefix": "ecs"
+        }
+      },
+      "healthCheck": {
+        "command": ["CMD-SHELL", "wget -q -O /dev/null http://localhost:3001/api/health || exit 1"],
+        "interval": 30,
+        "timeout": 5,
+        "retries": 3,
+        "startPeriod": 60
+      }
+    }
+  ]
+}
